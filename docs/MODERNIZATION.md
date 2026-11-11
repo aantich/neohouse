@@ -4,6 +4,24 @@ The agreed target is native CPU machine code with minimal C. Initial bring-up
 uses single-CPU IA32 under QEMU to reduce changes relative to House. A 64-bit
 target follows after a reliable modern-runtime boot.
 
+## Terminal first
+
+The first usable system is a character-based terminal, per the user's updated
+scope. Defer GUI rendering, fonts, widgets, windows, mouse interaction and DPI
+work. Gadgets must not be compiled or linked into any new boot target.
+
+Bring up COM1 serial diagnostics first, with QEMU connected to a normal host
+terminal. Then add input, line editing and a small shell over that character
+stream. The host terminal supplies readable fonts and window scaling. A VGA
+text console and PS/2 keyboard path can follow once boot and the runtime work;
+they must not be prerequisites for early serial debugging.
+
+The sequence is: serial boot marker; modern RTS startup; Haskell output;
+repeated allocation and GC; serial input and line editing; interactive shell;
+then additional drivers and protected user execution. Keep unsupported runtime
+OS operations explicit so a stub cannot silently report success. The old
+graphics desktop and its assets remain external historical references.
+
 ## First three stages
 
 1. **Create an isolated working copy and Git repository.** Done: House 0.8.93
@@ -11,14 +29,17 @@ target follows after a reliable modern-runtime boot.
    repository initialized on `codex/modern-ghc-bootstrap`. The parent upstream
    snapshots and historical boot evidence remain unchanged. The initial import
    is a local reference, not an approved public source release.
-2. **Establish a reproducible modern Linux toolchain.** In progress: Docker's
-   `linux/386` execution was verified on this Apple Silicon host. GHC 9.14.1 is
-   the candidate with an official i386 Linux distribution. Pin the compiler
-   archive/hash, base image digest, C compiler/binutils and package inputs;
-   record dependency versions. First prove a hosted native executable can be
-   built and run. That does not prove a freestanding RTS works.
-3. **Boot a minimal standalone modern Haskell runtime.** Pending: audit and
-   adapt the old startup/runtime changes against the selected GHC. Establish
+2. **Establish a reproducible modern Linux toolchain.** Done for initial
+   bring-up: the Docker builder pins GHC 9.14.1 by archive hash, its Debian base
+   by digest and packages by dated snapshot. GCC 12.2.0 and binutils 2.40 are
+   recorded with the full package manifest. The hosted ELF32 native-code check
+   passed, allocating 16.8 MB and completing 24 collections with live-data
+   checks. See [the toolchain instructions](../toolchain/README.md) and
+   [recorded results](BRINGUP_STATUS.md). A freestanding RTS is still separate.
+3. **Boot a minimal standalone modern Haskell runtime.** In progress: the new
+   assembly-only platform entry and COM1 output boot successfully in QEMU.
+   The actual GHC RTS port remains pending. Audit and adapt the old
+   startup/runtime changes against the selected GHC. Establish
    serial diagnostics, boot memory layout, linker configuration and required
    RTS platform hooks. The gate is a source-built kernel that enters Haskell,
    allocates repeatedly and completes multiple garbage collections under QEMU.
@@ -26,8 +47,8 @@ target follows after a reliable modern-runtime boot.
    this checkpoint.
 
 Gadgets is excluded from the stage-3 target. Bring up a minimal program before
-restoring the original shell, drivers and protected user execution. The new
-[GUI plan](GUI_REPLACEMENT.md) provides the subsequent desktop milestones.
+restoring shell behavior, drivers and protected user execution. The
+[GUI plan](GUI_REPLACEMENT.md) is deferred until the terminal target is useful.
 
 ## C reduction policy
 

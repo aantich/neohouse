@@ -4,6 +4,11 @@ Decision recorded 2026-11-11: replace Gadgets with an independently implemented
 Haskell toolkit. The release must permit use, modification, redistribution and
 commercial use. Target native CPU code, with no new C GUI dependency.
 
+**Deferred:** the first usable modern House target is now a character-based
+terminal and shell. This document preserves the later GUI direction; renderer,
+widgets, desktop, fonts and display scaling are outside the initial milestone.
+See [the terminal-first sequence](MODERNIZATION.md).
+
 ## License and provenance
 
 Use MIT for new original toolkit code and examples. Preserve the applicable

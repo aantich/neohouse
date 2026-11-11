@@ -16,6 +16,7 @@ complete file-by-file manifest of the compiler, runtime and release image.
 
 | Component | Observed terms/evidence | Planned disposition |
 | --- | --- | --- |
+| New `bootstrap/`, `scripts/` and toolchain code | Original MIT code, SPDX identifiers and `LICENSES/MIT.txt` | Preserve the MIT notice; no Gadgets code or historical boot header is used in these checkpoints |
 | Programatica contributions | Three-clause BSD-style permission in `LICENSE`, including attribution and non-endorsement | Reuse where provenance is established; preserve notices in source and binary distributions |
 | Otherwise unmarked hOp files | Custom permission to use, modify and distribute, including derived works; `LICENSE` | Retain this exact notice; do not label these files MIT merely because the terms are permissive |
 | `kernel/Gadgets/` including `lib/`, demos and images | Academic-use-only redistribution in `LICENSE` and `kernel/Gadgets/README.txt` | Replace independently; exclude from public source, history and release artifacts |

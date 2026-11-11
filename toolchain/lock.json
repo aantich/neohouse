@@ -1,0 +1,17 @@
+{
+  "platform": "linux/386",
+  "base_image": "debian@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc",
+  "debian_snapshot": "20261110T000000Z",
+  "image": "house-ghc:9.14.1-i386",
+  "compiler": {
+    "version": "9.14.1",
+    "filename": "ghc-9.14.1-i386-deb10-linux.tar.xz",
+    "url": "https://downloads.haskell.org/ghc/9.14.1/ghc-9.14.1-i386-deb10-linux.tar.xz",
+    "sha256": "c656e060c11c1a195fe4c2faf54268ce7dac3cd464aebc0eca8b796772950098"
+  },
+  "source": {
+    "filename": "ghc-9.14.1-src.tar.xz",
+    "url": "https://downloads.haskell.org/ghc/9.14.1/ghc-9.14.1-src.tar.xz",
+    "sha256": "2a83779c9af86554a3289f2787a38d6aa83d00d136aa9f920361dd693c101e77"
+  }
+}

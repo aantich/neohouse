@@ -1,0 +1,7 @@
+# The toolchain image must never include the historical kernel or Gadgets.
+**
+!toolchain/
+!toolchain/Dockerfile
+!toolchain/lock.json
+!.cache/
+!.cache/ghc-9.14.1-i386-deb10-linux.tar.xz
