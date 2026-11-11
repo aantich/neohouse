@@ -36,19 +36,29 @@ graphics desktop and its assets remain external historical references.
    passed, allocating 16.8 MB and completing 24 collections with live-data
    checks. See [the toolchain instructions](../toolchain/README.md) and
    [recorded results](BRINGUP_STATUS.md). A freestanding RTS is still separate.
-3. **Boot a minimal standalone modern Haskell runtime.** In progress: the new
-   assembly-only platform entry and COM1 output boot successfully in QEMU.
-   The actual GHC RTS port remains pending. Audit and adapt the old
-   startup/runtime changes against the selected GHC. Establish
-   serial diagnostics, boot memory layout, linker configuration and required
-   RTS platform hooks. The gate is a source-built kernel that enters Haskell,
-   allocates repeatedly and completes multiple garbage collections under QEMU.
-   A constant-output Haskell function or hosted Linux program does not satisfy
-   this checkpoint.
+3. **Boot a minimal standalone modern Haskell runtime.** Checkpoint passed:
+   the new kernel enters GHC 9.14.1 native Haskell, allocates 16.8 MB and performs
+   24 collections while checking retained chains. The backend supplies boot
+   memory allocation, HPET time, CPU setup and fault diagnostics. A basic
+   Haskell serial shell also boots and accepts commands. This uses a restricted
+   library interface and a partly rebuilt RTS: its C objects are rebuilt from
+   the matching verified source, while 22 native Cmm/assembly objects come from
+   the pinned compiler bindist. It does not establish a complete source build
+   of the GHC distribution or a port of the historical House kernel modules.
 
 Gadgets is excluded from the stage-3 target. Bring up a minimal program before
 restoring shell behavior, drivers and protected user execution. The
 [GUI plan](GUI_REPLACEMENT.md) is deferred until the terminal target is useful.
+
+## Next work
+
+Build a properly configured freestanding RTS/library set from source, including
+native Haskell bignums, rather than expanding the restricted first-boot ABI
+indefinitely. Restore standard exception/finalizer behavior and the useful
+pure library surface before bringing across House modules. Then port the
+interrupt/timer and device APIs, replace polling waits with event-driven input,
+and add VGA text/PS2 only if a graphical VM window is needed. Paging, isolation,
+protected user execution and a 64-bit target remain separate milestones.
 
 ## C reduction policy
 

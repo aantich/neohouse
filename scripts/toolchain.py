@@ -42,6 +42,22 @@ def fetch(component):
     print(f"Verified {destination.name}", flush=True)
 
 
+def prepare_source():
+    """Verify and unpack the locked source, including in an offline builder."""
+    item = LOCK['source']
+    archive = ROOT / '.cache' / item['filename']
+    if not archive.exists() or digest(archive) != item['sha256']:
+        raise SystemExit('Verified GHC source required: run scripts/toolchain.py fetch --source')
+    source = ROOT / '.cache' / f"ghc-{LOCK['compiler']['version']}"
+    stamp = source / '.house-source-sha256'
+    if not stamp.exists() or stamp.read_text().strip() != item['sha256']:
+        # The archive is an official, hash-verified input. Use the builder's
+        # tar, including with Debian's older Python 3.11 tarfile API.
+        subprocess.run(['tar', '-xf', str(archive), '-C', str(ROOT / '.cache')], check=True)
+        stamp.write_text(item['sha256'] + '\n')
+    return source
+
+
 def run(arguments, *, interactive=False, image=None):
     command = ["docker", "run", "--rm", "--platform", LOCK["platform"],
                "--network", "none", "--mount",

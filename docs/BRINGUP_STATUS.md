@@ -1,8 +1,9 @@
 # Terminal-first bring-up status
 
-Verified 2026-11-11 on an Apple Silicon Mac. These results establish two
-independent foundations. A standalone modern GHC runtime and an interactive
-House terminal have not yet been implemented.
+Verified 2026-11-11–12 on an Apple Silicon Mac. These results establish two
+foundations, plus a standalone modern GHC allocation/GC checkpoint and a basic
+interactive Haskell terminal. The historical House kernel modules and broader
+standard-library surface have not yet been ported.
 
 ## Hosted modern compiler: passed
 
@@ -56,13 +57,80 @@ python3 scripts/check_serial.py
 Generated evidence is in ignored `build/serial/`: ELF layout, link map,
 undefined-symbol check, serial/QEMU logs and `run.json`. The test VM exits.
 
+## Standalone native Haskell and terminal: passed
+
+```sh
+python3 scripts/check_runtime.py
+python3 scripts/check_terminal.py
+python3 scripts/terminal.py --no-build  # interactive, in a normal host terminal
+```
+
+The new Multiboot kernel enters GHC 9.14.1 native Haskell without Linux or
+another guest OS. It uses one non-threaded capability and the two-generation
+copying collector. Each of twelve 50,000-node chains is forced, retained in a
+mutable root, checked after major GC, dropped and collected again. The initial
+checkpoint records **24 collections** and **16,802,376 allocated bytes**.
+The tested kernel SHA-256 is
+`db400ef95cf7ee8e6e44477a870e7af36b029578948506d14aeefdef70a7abf7`.
+
+Bootstrap checks run inside the guest before RTS initialization: metadata
+allocation/reallocation preserves payloads across 2048 mixed operations; free
+blocks coalesce; overflow allocation is rejected; sorting, bounded formatting,
+x87 collector math and megablock isolation/reuse are checked. The HPET must
+advance. CPU exceptions report their vector, error code and instruction address
+and exit the test VM with failure.
+
+The terminal test drives UART input after each prompt and checks `help`, `mem`,
+`gc`, `echo`, `clear`, unknown commands and `selftest`, plus backspace, Delete,
+Ctrl-U, Ctrl-C, ignored arrow escapes, CR/LF/CRLF and the 256-character line
+limit. Its second allocation check completes another 24 collections. `halt`
+returns through Haskell to the runtime entry; QEMU exits with status 33.
+
+The final ELF audit checks for no undefined symbols, dynamic interpreter,
+dynamic/TLS segments, Linux syscall instructions, GMP/libffi/pthread symbols
+or listed Unix services. Evidence is in `build/runtime/` and `build/terminal/`:
+serial logs, run JSON, link map, disassembly, input hashes, notices and exact
+dependency manifests. No historical House/Gadgets source or assets enter the
+new target. Test VMs exit; the interactive launcher is separate.
+
+### Non-Haskell code in this guest
+
+| Component | Exact current scope |
+| --- | --- |
+| GHC runtime | Selected GHC 9.14.1 C/Cmm/assembly; 138 C objects rebuilt from matching source with section GC, nine platform/unsupported objects replaced, 22 native objects retained from the pinned bindist before final link selection |
+| Original bootstrap support | Boot/fault assembly and C for CPU instruction bridges, RTS initialization, physical megablocks, HPET, diagnostics and a small metadata allocator; source under `bootstrap/` |
+| GCC compiler support | Debian `libgcc-12-dev` 12.2.0-14+deb12u1: only `__divdi3`, `__udivdi3`, `__udivmoddi4` remain in the final ELF |
+
+No host libc/libm, GMP, libffi, pthread, GRUB or other external native runtime
+library is linked. GCC, binutils, Docker and QEMU are build/emulation tools,
+not guest libraries. Haskell implements serial polling, text editing, command
+dispatch and the retained-data test.
+
+### Deliberate limits
+
+This is a restricted first-boot ABI, with primitive Haskell types/operations,
+not the full Linux `base` library. `Integer`, standard exception/finalizer
+behavior, Unix handles, dynamic loading and bytecode execution are unavailable.
+GMP's absence does **not** establish that native Haskell bignums were built.
+The Cmm/assembly runtime objects are still from the matching compiler bindist;
+the complete RTS/library source build remains work to do.
+
+The console is ASCII serial, busy-polling on one CPU. Paging, hardware IRQs,
+preemption, protected applications, filesystem and networking are absent. The
+physical allocator conservatively excludes everything below the highest kernel
+or boot-data/module end, and uses only whole usable megablocks. C metadata has
+an 8 MiB arena; the RTS heap limit is 128 MiB. On the 256 MiB test VM the admitted
+physical pool is 245 MiB and the terminal initially acquires 5 MiB for the heap.
+These are bring-up choices, not a general hardware or production OS claim.
+
 ## Next gate
 
-Connect the modern non-threaded RTS to the platform entry with valid memory,
-timer, scheduling and diagnostic hooks. Enter Haskell through a serial I/O
-boundary, prove repeated allocation and GC in that guest, then add serial
-input, line editing and the shell. [The RTS work map](RTS_PORT.md) identifies
-the inspected source interfaces. GUI work is deferred.
+Build the full freestanding RTS/library configuration from source, enable
+native Haskell bignums and standard library semantics, then port historical
+House modules onto the new platform boundary. Add interrupts/event-driven
+input and memory protection before protected applications. [The RTS work
+map](RTS_PORT.md) records the implementation and remaining interfaces. GUI work
+is deferred.
 
 The local Docker disk limit was increased to 128 GiB for build capacity;
 the filesystem then reported approximately 64 GiB available. The existing

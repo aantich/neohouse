@@ -2,7 +2,8 @@
 
 Source inspected: the verified GHC 9.14.1 source archive pinned in
 `toolchain/lock.json`. It is extracted locally under ignored `.cache/ghc-9.14.1`.
-This is a work map; the hooks below have not yet been ported or proven.
+The first restricted backend now boots and passes allocation/GC checks. This
+map also describes the broader target work still needed for a complete port.
 
 The character terminal removes the GUI from bring-up. It does not remove the
 runtime's platform requirements. The official Linux bindist is useful as a
@@ -47,4 +48,41 @@ implementing only the historical `getPageSize` function is insufficient.
    restrict assembly to CPU instructions and boot/interrupt entry where needed.
 
 The hosted GC check and platform-only serial check establish different parts
-of this chain. Neither alone establishes a standalone modern Haskell OS.
+of this chain. The additional `check_runtime.py` now establishes steps 2–4 for
+the restricted native program. `check_terminal.py` exercises step 5 through
+the real emulated UART.
+
+## Implemented first-boot boundary
+
+- `bootstrap/runtime/memory.c` admits whole megablocks from Multiboot usable
+  ranges, excludes reserved overlaps, kernel, boot tables/command line and
+  modules, then implements allocation/reuse/release. The separate coalescing
+  C metadata allocator occupies an 8 MiB kernel BSS arena.
+- `clock.c` reads QEMU's 64-bit HPET without enabling interrupts. CPU time
+  currently equals elapsed time on the sole continuously active CPU. Wall
+  time is unavailable. Own flat GDT, FPU/SSE setup and an exception IDT precede
+  Haskell entry; paging and hardware interrupts stay disabled.
+- `startup.c` initializes the non-threaded scheduler, two-generation copying
+  collector, stable roots and required state. Tick delivery, Unix signals,
+  tracing files, heap profiling, bytecode execution and dynamic loading are
+  unavailable. Empty scheduler I/O polling is valid; actual Unix waits fail.
+- `iface.c` supplies the GHC 9.14 `HsIface` fields needed by this program,
+  including the **string-literal info tables**. Unavailable callback closures
+  halt with a diagnostic. Unused boxing tables are NULL and their C APIs are
+  discarded at link time. This is not a general `base` implementation.
+- Haskell is compiled as a library entry (`HouseKernel.entry`), avoiding GHC's
+  normal process-main wrapper and its Unix-facing `TopHandler` graph. The
+  program uses primitive types and operations; it does not use `Integer`.
+- `Serial.hs` implements UART polling in Haskell over two port-instruction
+  wrappers. `HouseKernel.hs` implements editing, command parsing and GC checks.
+- `rebuild-rts.py` replaces nine Linux/unsupported RTS objects, rebuilds the
+  other 138 C objects with section GC, and retains 22 matching native objects.
+  The collector's sole `pow(2,x)` call is redirected to an x87 helper, avoiding
+  a broad libm dependency. The original verified GHC source tree is unmodified;
+  the changed collector source is staged under ignored `build/runtime/rts/`.
+
+The post-link audit rejects unresolved symbols, hosted ELF segments, Linux
+syscall instructions and named GMP/libffi/pthread/Unix services, and records
+the actual archive members and project input hashes. This check is useful
+evidence for the prototype; it does not replace a complete component/license
+audit or a full freestanding GHC build.

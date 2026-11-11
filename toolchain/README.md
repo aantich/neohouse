@@ -13,6 +13,8 @@ python3 scripts/toolchain.py fetch --source
 python3 scripts/toolchain.py build
 python3 scripts/toolchain.py hosted-check
 python3 scripts/check_serial.py
+python3 scripts/check_runtime.py
+python3 scripts/check_terminal.py
 ```
 
 The first two commands verify downloaded files before accepting them. The
@@ -57,8 +59,31 @@ installed: build the Dockerfile with `--target dependencies` and tag it
 `house-ghc:9.14.1-i386-dependencies`, then pass that tag to
 `check_serial.py --build-image house-ghc:9.14.1-i386-dependencies`.
 
-The terminal/shell follows once the GHC runtime and GC operate in the guest.
-Neither checkpoint compiles Gadgets, old fonts or image assets.
+The standalone runtime check builds an original kernel entry, a restricted
+GHC 9.14.1 backend and native Haskell allocation test. It verifies the source
+archive and unpacks it automatically, rebuilds the C RTS objects, and retains
+the bindist's 22 matching Cmm/assembly objects. It checks the final ELF and
+native dependencies, boots headlessly, verifies at least 24 collections with
+retained-data checks and exits QEMU. Evidence is under `build/runtime/`,
+including `dependencies.json`, notices, source hashes, ELF layout and logs.
+
+The terminal check starts the same kernel with `house.shell=1`, drives commands
+through its emulated UART, checks editing and repeated GC, then halts. It writes
+`build/terminal/serial.log` and `run.json`. Both checks accept `--no-build` for
+debugging. None of these targets compiles Gadgets, old fonts or image assets.
+
+For an interactive session in a normal host terminal, run:
+
+```sh
+python3 scripts/terminal.py
+```
+
+Type `help` for commands and `halt` to exit. Your host terminal supplies the
+font size and Retina scaling. The current serial driver busy-polls on one CPU;
+interrupt-driven idle waits and richer terminal support come later. The shell
+is ASCII-only with a 256-character line limit, backspace/delete, Ctrl-U and
+Ctrl-C. Arrow-key escape sequences are ignored. An isolated Escape key waits
+for a following byte. No filesystem, Unix process API or network is provided.
 
 ## Sources and licensing
 

@@ -20,9 +20,11 @@ binary boot baseline are kept in the parent workspace, outside this repository.
   That is evidence for the old binary, not a modern source build.
 - The pinned GHC 9.14.1 IA32 Linux toolchain builds and runs native ELF32 code.
   Its hosted allocation check completed 24 collections with live-data checks.
-- A new assembly-only image boots in QEMU and writes a COM1 serial marker.
-  It does not yet start the Haskell runtime. The standalone RTS port is the next
-  integration step; a modern interactive shell is not ready yet.
+- The new standalone GHC 9.14.1 image enters native Haskell, allocates 16.8 MB
+  and completes 24 collections with retained-data checks under QEMU.
+- A Haskell serial terminal supports `help`, `mem`, `gc`, `selftest`, `echo`,
+  `clear` and `halt`, with bounded ASCII line editing. It uses a restricted
+  runtime/library interface; the historical House drivers are not ported yet.
 - The imported GUI is **academic-use-only Gadgets**. This working import is not
   ready for an unrestricted open-source release. Its initial Git commit also
   contains Gadgets. There is no public remote configured.
@@ -35,6 +37,19 @@ binary boot baseline are kept in the parent workspace, outside this repository.
 - [Checkpoint results and remaining work](docs/BRINGUP_STATUS.md)
 - [Independent Haskell GUI replacement](docs/GUI_REPLACEMENT.md)
 - [License inventory and publication requirements](docs/LICENSE_AUDIT.md)
+
+## Run the terminal
+
+From this repository in a normal host terminal:
+
+```sh
+python3 scripts/terminal.py
+```
+
+This builds with the pinned Docker image and runs QEMU with serial attached to
+your terminal, using its fonts and scaling. Type `help`, then `halt` to exit.
+Use `--no-build` to reuse an existing image. Reproducible setup and automated
+checks are in [the toolchain instructions](toolchain/README.md).
 
 New original bootstrap code uses MIT. Existing files retain their own
 licenses and notices. Adding an MIT file will not relicense the imported tree.

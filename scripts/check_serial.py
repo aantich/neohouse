@@ -64,7 +64,7 @@ def main():
     print(stdout.decode("ascii", errors="replace"), end="")
     if not passed:
         raise SystemExit(f"Serial platform checkpoint failed; inspect {output}")
-    print("Platform serial checkpoint passed (Haskell boot remains pending).")
+    print("Platform-only serial checkpoint passed.")
 
 
 if __name__ == "__main__":

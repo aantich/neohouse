@@ -39,6 +39,23 @@ distribution. Using an open-source compiler, emulator or separately distributed
 bootloader does not by itself assign that tool's license to our original code.
 Check the obligations of anything actually incorporated or linked into an image.
 
+## New terminal checkpoint inputs
+
+The new guest links original MIT bootstrap/Haskell code, selected GHC 9.14.1
+RTS/library objects, and selected integer-arithmetic helpers from Debian's
+`libgcc-12-dev` **12.2.0-14+deb12u1**. The installed package notice identifies
+libgcc as GPL-3.0-or-later with the **GCC Runtime Library Exception 3.1**. Keep
+the exact notice and assess the exception for the eventual release build.
+The source and bindist hashes, pinned compiler environment, actual linked
+objects and copied notices are recorded under ignored `build/runtime/`.
+
+GMP, libffi, a host libc/libm, historical House support code, GRUB binaries,
+Gadgets and old assets are not linked into this checkpoint. GMP's absence is
+because the restricted Haskell program does not expose arbitrary-precision
+integers; the native bignum library configuration is still future work.
+The 22 retained prebuilt GHC Cmm/assembly objects and compiler-helper sources
+must be addressed in a fully reproducible source-based release toolchain.
+
 ## Public repository and releases
 
 The initial local commit `5cf4e5987cecb4eb80656a593fb3f194996ca386` imports
