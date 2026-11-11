@@ -1,0 +1,8 @@
+# Downloaded toolchains and local build products.
+/.cache/
+/build/
+/dist-newstyle/
+/artifacts/
+/.ghc.environment.*
+__pycache__/
+*.pyc
