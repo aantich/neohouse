@@ -4,8 +4,10 @@ Working port of House 0.8.93 to a modern GHC, targeting native CPU machine code
 with as little C as practical. The first boot target remains single-CPU IA32
 under QEMU; a later 64-bit target is a separate milestone.
 
-The first usable target is a **character-based terminal and shell**. Start with
-COM1 serial output/input in a normal host terminal. GUI work is deferred.
+The active target is a **character-based Haskell REPL**: expressions,
+definitions and typed OS actions in a live workspace. The existing COM1
+terminal is the starting point; it is currently a command shell, not a Haskell
+evaluator. GUI work and publication research are deferred.
 
 This checkout was copied from upstream commit
 `37a52cc7ea108d2d7ed89ec99a15ab51a15d7d3d` of
@@ -31,12 +33,14 @@ binary boot baseline are kept in the parent workspace, outside this repository.
 
 ## Plans
 
+- [Active target: practical Haskell OS with a REPL](docs/REPL.md)
 - [Modernization milestones and C reduction](docs/MODERNIZATION.md)
 - [Pinned toolchain and initial checkpoints](toolchain/README.md)
 - [Standalone runtime bring-up work map](docs/RTS_PORT.md)
 - [Checkpoint results and remaining work](docs/BRINGUP_STATUS.md)
 - [Independent Haskell GUI replacement](docs/GUI_REPLACEMENT.md)
 - [License inventory and publication requirements](docs/LICENSE_AUDIT.md)
+- [Deferred research and publication topic](docs/RESEARCH_BACKLOG.md)
 
 ## Run the terminal
 

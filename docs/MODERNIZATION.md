@@ -6,9 +6,11 @@ target follows after a reliable modern-runtime boot.
 
 ## Terminal first
 
-The first usable system is a character-based terminal, per the user's updated
-scope. Defer GUI rendering, fonts, widgets, windows, mouse interaction and DPI
-work. Gadgets must not be compiled or linked into any new boot target.
+The first usable system is a character-based Haskell REPL, per the user's
+updated scope. The serial command shell is an implemented foundation; real
+Haskell evaluation is the next target. Defer GUI rendering, fonts, widgets,
+windows, mouse interaction and DPI work. Gadgets must not be compiled or
+linked into any new boot target.
 
 Bring up COM1 serial diagnostics first, with QEMU connected to a normal host
 terminal. Then add input, line editing and a small shell over that character
@@ -18,9 +20,10 @@ they must not be prerequisites for early serial debugging.
 
 The sequence is: serial boot marker; modern RTS startup; Haskell output;
 repeated allocation and GC; serial input and line editing; interactive shell;
-then additional drivers and protected user execution. Keep unsupported runtime
-OS operations explicit so a stub cannot silently report success. The old
-graphics desktop and its assets remain external historical references.
+then real Haskell compilation, live native-code loading and recoverable
+evaluation. Additional drivers follow practical REPL needs. Keep unsupported
+runtime OS operations explicit so a stub cannot silently report success. The
+old graphics desktop and its assets remain external historical references.
 
 ## First three stages
 
@@ -46,19 +49,26 @@ graphics desktop and its assets remain external historical references.
    the pinned compiler bindist. It does not establish a complete source build
    of the GHC distribution or a port of the historical House kernel modules.
 
-Gadgets is excluded from the stage-3 target. Bring up a minimal program before
-restoring shell behavior, drivers and protected user execution. The
-[GUI plan](GUI_REPLACEMENT.md) is deferred until the terminal target is useful.
+Gadgets is excluded from the stage-3 target. The
+[GUI plan](GUI_REPLACEMENT.md) is deferred until the REPL target is useful.
 
 ## Next work
 
-Build a properly configured freestanding RTS/library set from source, including
-native Haskell bignums, rather than expanding the restricted first-boot ABI
-indefinitely. Restore standard exception/finalizer behavior and the useful
-pure library surface before bringing across House modules. Then port the
-interrupt/timer and device APIs, replace polling waits with event-driven input,
-and add VGA text/PS2 only if a graphical VM window is needed. Paging, isolation,
-protected user execution and a 64-bit target remain separate milestones.
+Follow the [practical REPL plan](REPL.md). First support ordinary Haskell
+values/classes, rendering and controlled exceptions in the standalone guest,
+then establish host-assisted native compilation against a fixed guest API.
+Initially prove the generated code in a linked checkpoint image; this is not
+yet live evaluation. Follow with native loading, session bindings and
+timer-driven cancellation. The compiler initially runs on the host while
+submitted code executes inside House.
+
+Move toward a properly configured freestanding RTS/library source build,
+including native Haskell bignums before exposing `Integer`, rather than
+expanding the restricted first-boot ABI indefinitely. Port interrupts/timers
+and other House modules when these milestones need them. VGA text/PS2,
+paging, isolation, protected user execution and a 64-bit target remain
+separate milestones. The [research/publication topic](RESEARCH_BACKLOG.md)
+is parked for later and does not block the practical implementation.
 
 ## C reduction policy
 
