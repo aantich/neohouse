@@ -62,6 +62,19 @@ your terminal, using its fonts and scaling. Type `help`, then `halt` to exit.
 Use `--no-build` to reuse an existing image. Reproducible setup and automated
 checks are in [the toolchain instructions](toolchain/README.md).
 
+To watch boot and use the same guest terminal in its own QEMU window:
+
+```sh
+python3 scripts/terminal.py --window
+```
+
+On macOS this starts fullscreen with scaling for Retina displays. `--fullscreen`
+also selects this mode explicitly; `--windowed` opens a smaller resizable window.
+Use `--no-build` to boot the existing image immediately. Click inside the window
+to type. The window displays the guest's serial console using QEMU's terminal
+renderer; House's command loop, memory management and Haskell runtime run
+inside the VM. Guest VGA/PS2 drivers are not needed for this mode.
+
 To compile and boot an ordinary Haskell module using the initial OS API:
 
 ```sh

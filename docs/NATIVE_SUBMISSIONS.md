@@ -2,9 +2,9 @@
 
 This is the build-time bridge toward the [live REPL](REPL.md). A trusted
 ordinary Haskell module is compiled by the pinned GHC on the host, linked
-into a standalone kernel and executed inside QEMU. Each submission rebuilds
-and reboots the guest. There is no live code loader or persistent REPL session
-yet, and the Haskell source is currently supplied from a host file.
+into a standalone kernel and executed inside QEMU. Each submission incrementally
+builds an image and reboots the guest. There is no live code loader or persistent
+REPL session yet, and the Haskell source is currently supplied from a host file.
 
 From this repository:
 
@@ -14,6 +14,14 @@ python3 scripts/submission.py examples/repl/HelloHouse.hs
 
 Use `--build-only` to produce `build/submission/kernel.elf` without booting.
 The first library source build is substantially slower than a cached build.
+Unchanged RTS objects, the RTS archive, bootstrap C/assembly objects and Haskell
+modules are reused. Staging identical submission source preserves its timestamp.
+GHC recompiles changed modules and affected dependents; a changed module requires
+relinking the static kernel. Repeating an unchanged submission reuses the linked
+image as well. The ELF dependency audit still runs on cached images. Switching
+between the terminal and submission configurations can recompile modules because
+their compiler options differ.
+
 Docker runs the IA32 compiler; native QEMU runs the freestanding kernel.
 The compiler's hosted dependencies are separate from guest dependencies.
 The batch runner has a 30-second VM watchdog. A timeout stops the whole VM;
@@ -111,6 +119,7 @@ python3 scripts/check_submission.py
 python3 scripts/check_runtime.py       # restore/check the default image
 python3 scripts/check_terminal.py --no-build
 python3 scripts/check_serial.py
+python3 scripts/toolchain.py run -- python3 scripts/check_native_cache.py
 python3 scripts/toolchain.py run -- python3 scripts/check_elf_audit.py
 ```
 
@@ -124,7 +133,10 @@ typed exception matching, allocator failure/errno, UTF-8 string conversion and
 rejection of unavailable codecs, file hashing and IPE configuration.
 
 The submission check boots the example module and checks its results and OS
-effects, then asks GHC to compile an ill-typed module. That compile must fail
+effects, repeats it while checking that every object/archive/image and staged
+source retain their timestamps and hashes, then edits the module and boots its
+changed output while checking reuse of unrelated objects. Finally it asks GHC
+to compile an ill-typed module. That compile must fail
 without booting or replacing the existing runtime image. Results are recorded
 under `build/submission-tests/`.
 

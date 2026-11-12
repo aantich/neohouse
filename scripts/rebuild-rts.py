@@ -21,9 +21,19 @@ REPLACED = {'RtsStartup.o', 'CheckUnload.o', 'Interpreter.o', 'Ticker.o',
             'Signals.o', 'OSMem.o', 'GetTime.o', 'Select.o', 'ProfHeap.o'}
 
 
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def main():
     toolchain.prepare_source()
     OUTPUT.mkdir(parents=True, exist_ok=True)
+    manifest = OUTPUT / 'build.json'
+    try:
+        previous = json.loads(manifest.read_text())
+    except (FileNotFoundError, ValueError):
+        previous = {}
+    previous_objects = previous.get('object_files_sha256', {})
     include = Path(subprocess.check_output(
         ['ghc-pkg', 'field', 'rts', 'include-dirs', '--simple-output'], text=True).strip())
     original = include.parent / 'libHSrts-1.0.3.a'
@@ -60,26 +70,42 @@ def main():
                 raise RuntimeError('GHC GC power-of-two call changed; review port')
             text = 'extern double house_pow2(double, double);\n' + text.replace(old, '/ house_pow2(2, ')
             source = OUTPUT / 'GC.c'
-            source.write_text(text)
+            if not source.exists() or source.read_text() != text:
+                source.write_text(text)
         key = hashlib.sha256(source.read_bytes() + json.dumps(flags + extra).encode() + header_hash.encode()).hexdigest()
         stamp = target.with_suffix('.sha256')
-        if target.exists() and stamp.exists() and stamp.read_text() == key:
-            return target
+        if (target.exists() and stamp.exists() and stamp.read_text() == key
+                and (member not in previous_objects or digest(target) == previous_objects[member])):
+            return target, False
+        stamp.unlink(missing_ok=True)
         result = subprocess.run([*flags, *extra, '-c', str(source), '-o', str(target)],
                                 capture_output=True, text=True)
         if result.returncode:
             raise RuntimeError(f'{source}:\n{result.stdout}{result.stderr}')
         stamp.write_text(key)
-        return target
+        return target, True
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        objects = list(pool.map(compile_one, sorted(sources.items())))
+        results = list(pool.map(compile_one, sorted(sources.items())))
+    objects = [path for path, _ in results]
+    compiled = sum(changed for _, changed in results)
     archive = OUTPUT.parent / 'libhouse-rts.a'
-    shutil.copyfile(original, archive)
-    subprocess.run(['ar', 'd', str(archive), *sorted(REPLACED)], check=True)
-    subprocess.run(['ar', 'r', str(archive), *map(str, objects)], check=True)
-    subprocess.run(['ranlib', str(archive)], check=True)
-    (OUTPUT / 'build.json').write_text(json.dumps({
+    archive_inputs = {
+        'original_archive_sha256': digest(original),
+        'object_files_sha256': {p.name: digest(p) for p in objects},
+        'replaced_platform_objects': sorted(REPLACED),
+    }
+    archive_rebuilt = (compiled or not archive.exists()
+                       or previous.get('archive_inputs') != archive_inputs
+                       or previous.get('archive_sha256') != digest(archive))
+    if archive_rebuilt:
+        staged = archive.with_suffix('.pending.a')
+        shutil.copyfile(original, staged)
+        subprocess.run(['ar', 'd', str(staged), *sorted(REPLACED)], check=True)
+        subprocess.run(['ar', 'r', str(staged), *map(str, objects)], check=True)
+        subprocess.run(['ranlib', str(staged)], check=True)
+        staged.replace(archive)
+    report = {
         'source': str(SOURCE), 'original_archive': str(original), 'flags': flags,
         'rebuilt_objects': sorted(sources),
         'retained_bindist_objects': sorted(set(members) - set(sources) - REPLACED),
@@ -89,8 +115,15 @@ def main():
         'source_files_sha256': {str(p.relative_to(SOURCE)): hashlib.sha256(p.read_bytes()).hexdigest()
                                 for p in sorted(sources.values())},
         'collector_change': 'Redirect the sole pow(2, x) call to house_pow2 using x87',
-    }, indent=2) + '\n')
-    print(f'Rebuilt {len(objects)} C objects; retained {len(members)-len(objects)-len(REPLACED)} native objects.', flush=True)
+        'object_files_sha256': archive_inputs['object_files_sha256'],
+        'archive_inputs': archive_inputs, 'archive_sha256': digest(archive),
+    }
+    text = json.dumps(report, indent=2) + '\n'
+    if not manifest.exists() or manifest.read_text() != text:
+        manifest.write_text(text)
+    retained = len(members) - len(objects) - len(REPLACED)
+    print(f'RTS: compiled {compiled}; reused {len(objects) - compiled} C objects; '
+          f'retained {retained} native objects; archive {"updated" if archive_rebuilt else "cached"}.', flush=True)
 
 
 if __name__ == '__main__':

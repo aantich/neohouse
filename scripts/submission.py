@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Compile a trusted Haskell module on the host, then boot it inside House.
 
-This linked-image checkpoint rebuilds/reboots the guest for each submission.
+This linked-image checkpoint incrementally builds and reboots the guest for each submission.
 It is not yet a live REPL or an untrusted-code sandbox.
 """
 import argparse
@@ -26,7 +26,9 @@ def main():
     data = args.source.read_bytes()
     output = ROOT / 'build/submission'
     output.mkdir(parents=True, exist_ok=True)
-    (output / 'HouseSubmission.hs').write_bytes(data)
+    staged = output / 'HouseSubmission.hs'
+    if not staged.exists() or staged.read_bytes() != data:
+        staged.write_bytes(data)
     kernel = output / 'kernel.elf'
     kernel.unlink(missing_ok=True)
     report = {'checkpoint': 'host-compiled-native-submission',
