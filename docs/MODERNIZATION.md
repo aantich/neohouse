@@ -54,16 +54,16 @@ Gadgets is excluded from the stage-3 target. The
 
 ## Next work
 
-Follow the [practical REPL plan](REPL.md). First support ordinary Haskell
-values/classes, rendering and controlled exceptions in the standalone guest,
-then establish host-assisted native compilation against a fixed guest API.
-Initially prove the generated code in a linked checkpoint image; this is not
-yet live evaluation. Follow with native loading, session bindings and
-timer-driven cancellation. The compiler initially runs on the host while
-submitted code executes inside House.
+Follow the [practical REPL plan](REPL.md). Ordinary Haskell functions, lists,
+classes, rendering, native `Integer` and controlled exception recovery now
+pass in the standalone guest. The [submission checkpoint](NATIVE_SUBMISSIONS.md)
+compiles a source module on the host against the initial `OS` API and runs its
+native code in a rebuilt/rebooted image. Live loading, session bindings and
+timer-driven cancellation follow; compilation and execution remain separate
+host/guest responsibilities.
 
 Move toward a properly configured freestanding RTS/library source build,
-including native Haskell bignums before exposing `Integer`, rather than
+while preserving the native Haskell bignum configuration, rather than
 expanding the restricted first-boot ABI indefinitely. Port interrupts/timers
 and other House modules when these milestones need them. VGA text/PS2,
 paging, isolation, protected user execution and a 64-bit target remain
@@ -77,7 +77,7 @@ is parked for later and does not block the practical implementation.
 | Haskell compilation | GHC native code generation | Remain native; no bytecode VM is required |
 | Runtime | Retain the necessary modern GHC RTS, including its C/Cmm/assembly | Reduce OS-facing shims; a Haskell-only replacement RTS is a separate research project |
 | Boot/interrupt entry and privileged operations | Small, explicit assembly and platform glue | Keep the unavoidable CPU boundary narrow; move policy and driver logic into Haskell |
-| Big integers | Evaluate GHC's native Haskell bignum backend | Remove GMP from the guest when the selected RTS/library build supports this configuration |
+| Big integers | Source-built native Haskell bignum backend in the guest | Keep GMP out of guest artifacts; the hosted compiler can retain its own dependencies |
 | GUI and input | Haskell renderer, UI and House drivers | No new native GUI/font library dependency; independent replacement for Gadgets |
 | libc/allocator/math/compiler helpers | Link only demonstrated necessities; audit each exact source | Replace small support routines where practical, avoid imposing a broad libc on the guest |
 | Build tools | Isolated open-source compiler, C toolchain and emulator | Distinguish build-host software from code shipped in the kernel |

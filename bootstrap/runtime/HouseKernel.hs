@@ -1,12 +1,16 @@
 -- SPDX-License-Identifier: MIT
-{-# LANGUAGE MagicHash, NoImplicitPrelude, UnboxedTuples #-}
+{-# LANGUAGE CPP, MagicHash, NoImplicitPrelude, UnboxedTuples #-}
 module HouseKernel (entry) where
 
 import GHC.Internal.Types (Char(..), Int(..), IO(..))
 import GHC.Internal.Prim
-import HouseCallbacks ()
+import qualified HouseCallbacks
 import HouseIO
 import Serial
+import LibraryCheck (runLibraryCheck)
+#ifdef HOUSE_SUBMISSION
+import SubmissionRunner (runSubmission)
+#endif
 
 foreign import ccall unsafe "house_test_exit" testExit :: Int -> IO ()
 foreign import ccall safe "performMajorGC" majorGC :: IO ()
@@ -170,9 +174,16 @@ shell previousCR = do
                             Missing -> serial "Unknown command; type help\r\n"
 
 entry :: IO ()
-entry = do
+entry = HouseCallbacks.runIO boot
+
+boot :: IO ()
+boot = do
     serial "Entered native Haskell (GHC 9.14.1)\r\n"
     runGCCheck
+    runLibraryCheck
+#ifdef HOUSE_SUBMISSION
+    runSubmission
+#endif
     I# enabled <- interactive
     case enabled of
         0# -> pure ()

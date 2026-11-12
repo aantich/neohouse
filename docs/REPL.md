@@ -12,7 +12,7 @@ actions. Bindings remain available for subsequent input. Resource handles are
 opaque Haskell values; inspecting a resource produces ordinary immutable data.
 Effects are explicit in types and use a small OS API.
 
-Illustrative interaction, **not an implemented API**:
+Illustrative interaction, **not an implemented interactive session**:
 
 ```haskell
 house> let twice x = x + x
@@ -29,9 +29,10 @@ hello from House
 
 `memoryInfo :: OS MemoryInfo` returns a snapshot. `console :: Console` is a
 granted capability, and `writeLine :: Console -> String -> OS ()` performs an
-effect. These signatures describe the intended interface, not a sandbox that
-already exists. The current kernel executes trusted code in a shared address
-space; a newtype around `IO` does not establish isolation. Raw hardware access
+effect. These signatures now exist in the initial `House` API, used by
+[statically linked submissions](NATIVE_SUBMISSIONS.md). The current kernel
+executes trusted code in a shared address space; a newtype around `IO` does
+not establish isolation. Raw hardware access
 and unsafe operations belong behind the platform boundary.
 
 ## Scope of the first REPL
@@ -62,11 +63,13 @@ establish Haskell support either.
 | 4. Stateful terminal session | Track bindings/imports, display inferred types/results, report errors and invoke the small `OS` API. Keep the source environment consistent with successfully installed modules. | Define a function, use it in later inputs, inspect its type, read a memory snapshot and print to the console. A type error preserves earlier bindings. |
 | 5. Recoverable execution | Add timer-driven interruption and the runtime support needed to stop an evaluation, release its session roots and return to the prompt. Define what survives an exception or cancellation. | An exception and an infinite computation can each be interrupted without losing the prompt or corrupting retained values. Ctrl-C currently only cancels line editing; it does not meet this criterion. |
 
-The immediate milestone is step 1 plus a small step-2 compilation checkpoint.
-This tests the guest library and native execution contract before building a
-code loader. Port only the runtime/library features these examples need,
-while moving toward a reproducible freestanding source build rather than
-growing the temporary ABI indefinitely.
+Step 1 now has a standalone guest checkpoint: ordinary functions, lists,
+classes, rendering, native `Integer`, retained GC roots and exception recovery.
+The [step-2 static submission runner](NATIVE_SUBMISSIONS.md) accepts an ordinary
+Haskell module against the initial `House` API. Each submission rebuilds and
+reboots; live compilation/loading into the running guest and session bindings
+remain the next work. Continue toward a reproducible freestanding source build
+without growing the temporary ABI indefinitely.
 
 For the first session implementation, immutable bindings and no native-code
 unloading simplify lifetime management. Record limits on input, retained code

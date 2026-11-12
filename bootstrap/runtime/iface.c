@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT
  * Restricted RTS/Haskell interface for the first boot. Primitive boxed
- * types come from GHC. Unix I/O, finalizers and library exception handling
- * are unavailable: their callbacks enter a fatal diagnostic closure.
+ * types and exception values come from the source-built guest library.
+ * Unix I/O and other unavailable callbacks enter a fatal diagnostic closure.
  */
 #include "Rts.h"
 extern StgClosure HouseCallbacks_unsupported_closure;
@@ -16,6 +16,23 @@ BASIC_INFO(Fzh_con_info); BASIC_INFO(Dzh_con_info);
 #undef BASIC_INFO
 extern const StgInfoTable ghczminternal_GHCziInternalziCString_unpackCStringzh_info;
 extern const StgInfoTable ghczminternal_GHCziInternalziCString_unpackCStringUtf8zh_info;
+
+#define EXCEPTION(module, symbol) extern StgClosure ghczminternal_##module##_##symbol
+EXCEPTION(GHCziInternalziExceptionziType, divZZeroException_closure);
+EXCEPTION(GHCziInternalziExceptionziType, underflowException_closure);
+EXCEPTION(GHCziInternalziExceptionziType, overflowException_closure);
+EXCEPTION(GHCziInternalziIOziException, stackOverflow_closure);
+EXCEPTION(GHCziInternalziIOziException, heapOverflow_closure);
+EXCEPTION(GHCziInternalziIOziException, allocationLimitExceeded_closure);
+EXCEPTION(GHCziInternalziIOziException, blockedIndefinitelyOnMVar_closure);
+EXCEPTION(GHCziInternalziIOziException, blockedIndefinitelyOnSTM_closure);
+EXCEPTION(GHCziInternalziIOziException, cannotCompactFunction_closure);
+EXCEPTION(GHCziInternalziIOziException, cannotCompactPinned_closure);
+EXCEPTION(GHCziInternalziIOziException, cannotCompactMutable_closure);
+EXCEPTION(GHCziInternalziControlziExceptionziBase, nonTermination_closure);
+EXCEPTION(GHCziInternalziControlziExceptionziBase, nestedAtomically_closure);
+EXCEPTION(GHCziInternalziControlziExceptionziBase, noMatchingContinuationPrompt_closure);
+#undef EXCEPTION
 
 static HsIface interface;
 void init_ghc_hs_iface(void)
@@ -42,5 +59,21 @@ void init_ghc_hs_iface(void)
 #undef BASIC_INFO
     interface.unpackCStringzh_info = &ghczminternal_GHCziInternalziCString_unpackCStringzh_info;
     interface.unpackCStringUtf8zh_info = &ghczminternal_GHCziInternalziCString_unpackCStringUtf8zh_info;
+#define EXCEPTION(module, symbol) interface.symbol = &ghczminternal_##module##_##symbol
+    EXCEPTION(GHCziInternalziExceptionziType, divZZeroException_closure);
+    EXCEPTION(GHCziInternalziExceptionziType, underflowException_closure);
+    EXCEPTION(GHCziInternalziExceptionziType, overflowException_closure);
+    EXCEPTION(GHCziInternalziIOziException, stackOverflow_closure);
+    EXCEPTION(GHCziInternalziIOziException, heapOverflow_closure);
+    EXCEPTION(GHCziInternalziIOziException, allocationLimitExceeded_closure);
+    EXCEPTION(GHCziInternalziIOziException, blockedIndefinitelyOnMVar_closure);
+    EXCEPTION(GHCziInternalziIOziException, blockedIndefinitelyOnSTM_closure);
+    EXCEPTION(GHCziInternalziIOziException, cannotCompactFunction_closure);
+    EXCEPTION(GHCziInternalziIOziException, cannotCompactPinned_closure);
+    EXCEPTION(GHCziInternalziIOziException, cannotCompactMutable_closure);
+    EXCEPTION(GHCziInternalziControlziExceptionziBase, nonTermination_closure);
+    EXCEPTION(GHCziInternalziControlziExceptionziBase, nestedAtomically_closure);
+    EXCEPTION(GHCziInternalziControlziExceptionziBase, noMatchingContinuationPrompt_closure);
+#undef EXCEPTION
     ghc_hs_iface = &interface;
 }

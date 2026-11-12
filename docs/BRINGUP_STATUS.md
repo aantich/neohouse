@@ -1,9 +1,10 @@
 # Terminal-first bring-up status
 
 Verified 2026-11-11–12 on an Apple Silicon Mac. These results establish two
-foundations, plus a standalone modern GHC allocation/GC checkpoint and a basic
-interactive Haskell terminal. The historical House kernel modules and broader
-standard-library surface have not yet been ported.
+foundations, a standalone modern GHC allocation/GC checkpoint, a basic
+interactive Haskell terminal, and a source-built library/native-module
+checkpoint. The terminal is still a command shell; live native loading and
+REPL sessions are next. The historical House kernel modules are not yet ported.
 
 ## Hosted modern compiler: passed
 
@@ -57,7 +58,10 @@ python3 scripts/check_serial.py
 Generated evidence is in ignored `build/serial/`: ELF layout, link map,
 undefined-symbol check, serial/QEMU logs and `run.json`. The test VM exits.
 
-## Standalone native Haskell and terminal: passed
+## Initial standalone native Haskell and terminal: passed
+
+This section records the original primitive-only checkpoint. The later
+library/native-module checkpoint below supersedes its library limitations.
 
 ```sh
 python3 scripts/check_runtime.py
@@ -123,14 +127,80 @@ an 8 MiB arena; the RTS heap limit is 128 MiB. On the 256 MiB test VM the admitt
 physical pool is 245 MiB and the terminal initially acquires 5 MiB for the heap.
 These are bring-up choices, not a general hardware or production OS claim.
 
+## Ordinary Haskell and native modules: passed
+
+Verified 2026-11-12 with GHC 9.14.1 native code executing in the standalone
+QEMU guest. The new library build compiles the current graph of **203 Haskell
+objects** from the matching source with `BIGNUM_NATIVE`. It uses a private
+guest package database; the hosted compiler and its Linux/GMP dependencies are
+unchanged. The full new-target compiler/RTS configuration is still future work.
+
+The guest now checks functions, list processing, signed/derived `Show`,
+multiword `Integer` multiplication/division, `100!` rendering and integer
+retention across major GC. Opaque inputs prevent compile-time evaluation of
+the arithmetic checks. Standard evaluation exceptions are caught and followed
+by successful evaluation of `42`. Additional checks exercise typed arithmetic
+exceptions, allocator failure/errno, Haskell UTF-8 conversion, and explicit
+rejection of unavailable codecs, file hashing and IPE configuration. Rejection
+of IPE configuration leaves normal exception handling intact.
+
+An ordinary source module exporting `HouseSubmission.submission :: OS ()`
+is compiled on the host and linked into a fresh kernel. Inside House, the
+example prints `42`, `[2,4,6,8,10]`, `2^200`, a live memory snapshot and a
+division-by-zero recovery message, then completes with QEMU exit status 33.
+This is a rebuilt/rebooted static image, not live code loading or a REPL.
+See [the source/module contract and checks](NATIVE_SUBMISSIONS.md).
+
+The final default image and all 14 terminal cases pass; QEMU exits with 33.
+The assembly-only boot hash remains unchanged. The submission test also
+verifies that GHC rejects an ill-typed module before boot, preserving the
+previous runtime image. Recorded kernel SHA-256 values:
+
+- Default library/terminal image:
+  `9ec2694965b72864dcbfca349565f3d64248c8a8b6f94e8a09a329f4435f6165`.
+- Successful native submission:
+  `efeedccf122581ee42d84388064de83f74305626f40b44e22c16992e02bb6a33`.
+
+The initial chain check still measures 24 collections and 16,802,376 allocated
+bytes. Two additional explicit collections test the library/retained integers.
+The terminal initially acquires 6 MiB from the 245 MiB physical pool; its
+configured RTS heap limit remains 128 MiB.
+
+### Non-Haskell code in the expanded guest
+
+The GHC RTS C/Cmm/assembly, original bootstrap C/assembly and three libgcc
+helpers remain as above. The expanded guest additionally uses GHC's
+public-domain **`cbits/md5.c`** for type fingerprints: `__hsbase_MD5Init`,
+`__hsbase_MD5Update`, `__hsbase_MD5Final`, `__hsbase_MD5Transform`. Its notice
+and source hash are recorded. There is no added external crypto library.
+No GMP, libffi, host libc/libm, pthread or Linux syscall dependency is linked.
+
+Source/configuration/interface hashes, exact native imports and ELF layout
+are recorded in `build/runtime/dependencies.json`. The ELF syscall scan now
+recognizes verified GHC info-table offset data that linear disassembly treats
+as instructions. A regression check injects real `int 0x80`, `sysenter`,
+`syscall` and prefixed syscall instructions into unexecuted copies and verifies
+rejection; corrupting a recognized table must also remove its exemption.
+The scan is dependency evidence, not a security or control-flow proof.
+
+### Remaining limits
+
+The ordinary Haskell/OS surface is deliberately small. The full Unix `base`
+API, RTS Haskell-finalizer callback, general floating-point math, live native
+loader, persistent bindings and GHC self-hosting remain unavailable. The OS
+API is trusted code in a shared address space. UART output/input is still
+ASCII/polled, with no hardware IRQs, preemption, paging or application
+isolation. Ctrl-C edits a line; it does not interrupt native evaluation.
+
 ## Next gate
 
-Build the full freestanding RTS/library configuration from source, enable
-native Haskell bignums and standard library semantics, then port historical
-House modules onto the new platform boundary. Add interrupts/event-driven
-input and memory protection before protected applications. [The RTS work
-map](RTS_PORT.md) records the implementation and remaining interfaces. GUI work
-is deferred.
+Add a compiler transport and native loader so newly entered Haskell can run
+in the same guest without rebuilding/rebooting. Then add session bindings and
+timer-driven cancellation. Continue toward a fully configured freestanding
+RTS/library source build, porting historical House modules as practical needs
+arise. Memory protection precedes protected applications. [The RTS work
+map](RTS_PORT.md) records the implementation and remaining interfaces; GUI and
+publication research stay deferred.
 
 The local Docker disk limit was increased to 128 GiB for build capacity;
 the filesystem then reported approximately 64 GiB available. The existing

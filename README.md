@@ -27,6 +27,12 @@ binary boot baseline are kept in the parent workspace, outside this repository.
 - A Haskell serial terminal supports `help`, `mem`, `gc`, `selftest`, `echo`,
   `clear` and `halt`, with bounded ASCII line editing. It uses a restricted
   runtime/library interface; the historical House drivers are not ported yet.
+- The guest library graph is now rebuilt from GHC source with native Haskell
+  bignums. Functions, lists, `Show`, `Integer`, GC retention and recoverable
+  evaluation exceptions run in the standalone kernel without GMP.
+- A host-side submission driver compiles an ordinary Haskell module against
+  the initial `OS` API and boots its native code inside House. Each submission
+  still rebuilds/reboots; live loading and REPL bindings are next.
 - The imported GUI is **academic-use-only Gadgets**. This working import is not
   ready for an unrestricted open-source release. Its initial Git commit also
   contains Gadgets. There is no public remote configured.
@@ -34,6 +40,7 @@ binary boot baseline are kept in the parent workspace, outside this repository.
 ## Plans
 
 - [Active target: practical Haskell OS with a REPL](docs/REPL.md)
+- [Compile and run a native Haskell submission](docs/NATIVE_SUBMISSIONS.md)
 - [Modernization milestones and C reduction](docs/MODERNIZATION.md)
 - [Pinned toolchain and initial checkpoints](toolchain/README.md)
 - [Standalone runtime bring-up work map](docs/RTS_PORT.md)
@@ -54,6 +61,15 @@ This builds with the pinned Docker image and runs QEMU with serial attached to
 your terminal, using its fonts and scaling. Type `help`, then `halt` to exit.
 Use `--no-build` to reuse an existing image. Reproducible setup and automated
 checks are in [the toolchain instructions](toolchain/README.md).
+
+To compile and boot an ordinary Haskell module using the initial OS API:
+
+```sh
+python3 scripts/submission.py examples/repl/HelloHouse.hs
+```
+
+The example uses functions, lists, a large `Integer`, a memory snapshot and
+exception recovery. This is the static compilation checkpoint toward the REPL.
 
 New original bootstrap code uses MIT. Existing files retain their own
 licenses and notices. Adding an MIT file will not relicense the imported tree.

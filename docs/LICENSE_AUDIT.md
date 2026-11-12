@@ -50,9 +50,14 @@ The source and bindist hashes, pinned compiler environment, actual linked
 objects and copied notices are recorded under ignored `build/runtime/`.
 
 GMP, libffi, a host libc/libm, historical House support code, GRUB binaries,
-Gadgets and old assets are not linked into this checkpoint. GMP's absence is
-because the restricted Haskell program does not expose arbitrary-precision
-integers; the native bignum library configuration is still future work.
+Gadgets and old assets are not linked into this checkpoint. The subsequent
+native-submission checkpoint source-builds the guest's Haskell library graph
+with `BIGNUM_NATIVE`, including working arbitrary-precision integers. It also
+links GHC's `libraries/ghc-internal/cbits/md5.c` for type fingerprints. That
+file's Colin Plumb public-domain declaration is copied with the dependency
+notices; it is a small C helper, not an external crypto library. Retain the
+full GHC/ghc-internal notices, including notices applying to Report-derived
+library code. The four staged library modifications retain upstream notices.
 The 22 retained prebuilt GHC Cmm/assembly objects and compiler-helper sources
 must be addressed in a fully reproducible source-based release toolchain.
 

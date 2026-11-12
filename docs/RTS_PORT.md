@@ -72,7 +72,8 @@ the real emulated UART.
   discarded at link time. This is not a general `base` implementation.
 - Haskell is compiled as a library entry (`HouseKernel.entry`), avoiding GHC's
   normal process-main wrapper and its Unix-facing `TopHandler` graph. The
-  program uses primitive types and operations; it does not use `Integer`.
+  initial checkpoint used primitive types and operations. The subsequent
+  library/submission checkpoint below now supports ordinary values and `Integer`.
 - `Serial.hs` implements UART polling in Haskell over two port-instruction
   wrappers. `HouseKernel.hs` implements editing, command parsing and GC checks.
 - `rebuild-rts.py` replaces nine Linux/unsupported RTS objects, rebuilds the
@@ -86,3 +87,46 @@ syscall instructions and named GMP/libffi/pthread/Unix services, and records
 the actual archive members and project input hashes. This check is useful
 evidence for the prototype; it does not replace a complete component/license
 audit or a full freestanding GHC build.
+
+## Ordinary Haskell and native submissions
+
+`rebuild-libraries.py` builds the needed `ghc-internal` graph from verified
+source with Haskell2010 package defaults, `BIGNUM_NATIVE` and split sections.
+Its local package database supplies the guest interfaces/archive without
+changing the hosted compiler. The archive is built from the current dependency
+graph, excluding stale incremental objects. Source/configuration/artifact
+hashes protect its cache and appear in the final manifest.
+
+Four staged source changes retain their original GHC notices; the verified
+source directory remains unchanged:
+
+- `Fingerprint.getFileHash` explicitly raises an unavailable-feature error.
+  Pure/data/type fingerprints still use GHC's existing MD5 C helper.
+- Enabling IPE backtraces is rejected before changing exception state;
+  direct collection/rendering also raises an unavailable-feature error.
+  Ordinary HasCallStack exception messages remain available.
+- Foreign-string codecs default to Haskell UTF-8 implementations. Haskell
+  UTF-8/16/32 and Latin1/ASCII codecs remain; unknown codecs raise an error
+  without falling through to native iconv or host locale discovery.
+- Errno reads/writes use Haskell memory access to the existing kernel errno
+  location. Diagnostic conversion reports the numeric code in Haskell;
+  it does not use a host `strerror` service.
+
+The RTS interface now supplies the actual library exception values. Custom
+entry callbacks force pure results correctly and print an uncaught exception
+before failing the checkpoint. Unix handles and unported callbacks, including
+the RTS Haskell-finalizer callback, remain unavailable. This does not establish
+general heap-exhaustion recovery or complete `base` compatibility.
+
+`House` exposes opaque `OS`/`Console` values plus console, memory, GC and
+evaluation/exception operations. `LibraryCheck` exercises ordinary Haskell
+inside the guest; `SubmissionRunner` invokes a newly compiled module. See
+[the contract and checks](NATIVE_SUBMISSIONS.md). Raw `IO`, unrestricted imports
+and hardware operations are not isolated from trusted code at this stage.
+
+GHC's tables-next-to-code layout embeds metadata in executable sections.
+The syscall audit validates constructor-description and return/thunk/function
+SRT-offset words that linear disassembly mistakes for instructions. It rejects other syscall
+matches. Its regression check injects real trap instructions into copies of
+the ELF and corrupts a recognized table to verify rejection. This remains a
+prototype dependency audit, not a control-flow or security proof.

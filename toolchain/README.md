@@ -15,6 +15,7 @@ python3 scripts/toolchain.py hosted-check
 python3 scripts/check_serial.py
 python3 scripts/check_runtime.py
 python3 scripts/check_terminal.py
+python3 scripts/check_submission.py
 ```
 
 The first two commands verify downloaded files before accepting them. The
@@ -42,8 +43,8 @@ The hosted check compiles a native ELF32 program with GHC and verifies live
 data survives repeated garbage collections. It records the ELF header, exact
 Debian/Haskell package lists, compiler versions, native shared libraries and GC
 statistics under `build/hosted/`. This program runs under **Linux**, not on bare
-hardware. It uses the bindist's existing libraries, including GMP; the proposed
-native Haskell bignum guest build remains separate work.
+hardware. It uses the bindist's existing libraries, including GMP. The guest
+build separately compiles its library graph with native Haskell bignums.
 
 The platform serial check assembles an original Multiboot entry and boots it
 directly with the host's QEMU 11.1.x PC machine. It validates the boot magic and
@@ -62,10 +63,27 @@ installed: build the Dockerfile with `--target dependencies` and tag it
 The standalone runtime check builds an original kernel entry, a restricted
 GHC 9.14.1 backend and native Haskell allocation test. It verifies the source
 archive and unpacks it automatically, rebuilds the C RTS objects, and retains
-the bindist's 22 matching Cmm/assembly objects. It checks the final ELF and
+the bindist's 22 matching Cmm/assembly objects. It also source-builds the needed
+Haskell library graph with the native bignum backend and caches verified
+artifacts. It checks the final ELF and
 native dependencies, boots headlessly, verifies at least 24 collections with
 retained-data checks and exits QEMU. Evidence is under `build/runtime/`,
 including `dependencies.json`, notices, source hashes, ELF layout and logs.
+It now also checks ordinary values, large integers and exception recovery.
+
+The [native submission checkpoint](../docs/NATIVE_SUBMISSIONS.md) compiles an
+ordinary module exporting `submission :: OS ()` on the host, then boots its
+native code in a rebuilt guest. Run the example with:
+
+```sh
+python3 scripts/submission.py examples/repl/HelloHouse.hs
+```
+
+`check_submission.py` checks the example's guest output and rejects an ill-typed
+module before boot. It leaves submission inputs/results under
+`build/submission/` and validation logs under `build/submission-tests/`. Rebuild
+with `check_runtime.py` afterward to restore the default image used by
+`terminal.py --no-build`. Neither runner implements live code loading yet.
 
 The terminal check starts the same kernel with `house.shell=1`, drives commands
 through its emulated UART, checks editing and repeated GC, then halts. It writes

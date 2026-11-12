@@ -10,6 +10,7 @@
 int rts_stop_on_exception;
 HsStablePtr rts_breakpoint_io_action;
 KernelThreadId kernelThreadId(void) { return 0; } /* No host OS thread identity. */
+uint32_t getNumberOfProcessors(void) { return 1; } /* Single-CPU boot contract. */
 unsigned int era;
 StgWord user_era;
 void heapCensus(Time time STG_UNUSED) { house_panic("heap profiling unavailable"); }

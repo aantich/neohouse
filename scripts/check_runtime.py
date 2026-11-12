@@ -48,8 +48,11 @@ def main():
     (output / 'serial.log').write_bytes(stdout)
     (output / 'qemu.log').write_bytes(stderr)
     counters = re.search(rb'GC checkpoint passed; collections=(\d+); allocated_bytes=(\d+)', stdout)
+    library_passed = (b'Standalone Haskell library checkpoint passed; bignum_backend=native' in stdout
+                      and b'Haskell exceptions passed:' in stdout and b'recovered=42' in stdout)
     passed = (code == 33 and counters is not None and int(counters[1]) >= 24
               and int(counters[2]) > 1000000 and b'Haskell entry completed' in stdout
+              and library_passed
               and b'PANIC' not in stdout and b'CPU FAULT' not in stdout)
     (output / 'run.json').write_text(json.dumps({
         'checkpoint': 'standalone-native-haskell-gc',
@@ -58,6 +61,7 @@ def main():
         'qemu_exit_code': code, 'timed_out': timed_out, 'passed': passed,
         'collections': int(counters[1]) if counters else None,
         'allocated_bytes': int(counters[2]) if counters else None,
+        'library_passed': library_passed,
     }, indent=2) + '\n')
     print(stdout.decode('ascii', errors='replace'), end='')
     if not passed:
