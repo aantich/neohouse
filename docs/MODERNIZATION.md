@@ -30,8 +30,9 @@ old graphics desktop and its assets remain external historical references.
 1. **Create an isolated working copy and Git repository.** Done: House 0.8.93
    copied to this directory, original source/notices preserved, independent
    repository initialized on `codex/modern-ghc-bootstrap`. The parent upstream
-   snapshots and historical boot evidence remain unchanged. The initial import
-   is a local reference, not an approved public source release.
+   snapshots and historical boot evidence remain unchanged. For NeoHouse's
+   public repository, history was rewritten to retain the new modernization
+   code and documentation and exclude the historical reference import.
 2. **Establish a reproducible modern Linux toolchain.** Done for initial
    bring-up: the Docker builder pins GHC 9.14.1 by archive hash, its Debian base
    by digest and packages by dated snapshot. GCC 12.2.0 and binutils 2.40 are

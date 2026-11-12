@@ -5,7 +5,7 @@ eventual House guest. `lock.json` pins the official GHC 9.14.1 i386 bindist and
 matching source hashes, Debian base image digest, and Debian package snapshot.
 The normal build/run wrapper uses `linux/386` explicitly.
 
-From the `modern/` repository:
+From the repository root:
 
 ```sh
 python3 scripts/toolchain.py fetch
@@ -97,7 +97,9 @@ python3 scripts/terminal.py
 ```
 
 Type `help` for commands and `halt` to exit. Your host terminal supplies the
-font size and Retina scaling. The current serial driver busy-polls on one CPU;
+font size and Retina scaling. Use `python3 scripts/terminal.py --window` for
+QEMU's own console window (scaled fullscreen on macOS); `--no-build` boots the
+existing image immediately. The current serial driver busy-polls on one CPU;
 interrupt-driven idle waits and richer terminal support come later. The shell
 is ASCII-only with a 256-character line limit, backspace/delete, Ctrl-U and
 Ctrl-C. Arrow-key escape sequences are ignored. An isolated Escape key waits

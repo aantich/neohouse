@@ -1,87 +1,71 @@
-# License inventory and open-source release plan
+# Source provenance and dependency licenses
 
-Initial audit, 2026-11-11. This records observed notices, unresolved provenance
-and release decisions; it is not a claim that the current import is cleared.
+Updated 2026-11-12 for the public NeoHouse repository.
 
-The governing requirement is an unrestricted open-source release, including
-commercial use. Academic-use-only terms fail the Open Source Definition's
-[prohibition on field-of-use restrictions](https://opensource.org/osd).
-MIT is the intended license for new original code. Existing components keep
-their own terms; do not replace the inherited `LICENSE` with a blanket MIT file.
+## Published sources
 
-## Observed components
+The published history contains only independently authored modernization code
+and documentation. Git history was rewritten using an explicit source allowlist:
 
-Paths are relative to this repository. This is an initial inventory, not yet a
-complete file-by-file manifest of the compiler, runtime and release image.
+- `bootstrap/`: new kernel/platform boundary, Haskell runtime interface and checks.
+- `scripts/`: new compiler, build, inspection, submission and VM launch tools.
+- `toolchain/`: pinned dependency descriptions and Docker build instructions.
+- `examples/`: new native Haskell submission examples.
+- `docs/`, `README.md`, `.gitignore`, `.dockerignore` and project license files.
 
-| Component | Observed terms/evidence | Planned disposition |
+These original sources are covered by [MIT](../LICENSE), with a second copy at
+[`LICENSES/MIT.txt`](../LICENSES/MIT.txt). SPDX identifiers identify source files.
+No historical House implementation is relabeled MIT by this publication.
+
+Gadgets' academic-only source, its adapters/demos, historical kernels and
+bootloader binaries, fonts, generated assets, support libraries and old GHC
+patches are absent from every published commit. The unmodified historical
+sources and a backup of the pre-rewrite development history remain external
+local research references. They are not inputs to the NeoHouse build.
+
+House remains an architectural reference. The historical import was based on
+[dls/house at 37a52cc7](https://github.com/dls/house/tree/37a52cc7ea108d2d7ed89ec99a15ab51a15d7d3d).
+That project's hOp, Programatica, Gadgets and component notices apply to its
+own files, which are excluded here. Research papers are linked rather than
+redistributed.
+
+## Downloaded and linked dependencies
+
+Dependencies are pinned in [`toolchain/lock.json`](../toolchain/lock.json).
+Downloaded archives and generated objects/images are ignored by Git.
+
+| Component | Recorded license/provenance | Use |
 | --- | --- | --- |
-| New `bootstrap/`, `scripts/` and toolchain code | Original MIT code, SPDX identifiers and `LICENSES/MIT.txt` | Preserve the MIT notice; no Gadgets code or historical boot header is used in these checkpoints |
-| Programatica contributions | Three-clause BSD-style permission in `LICENSE`, including attribution and non-endorsement | Reuse where provenance is established; preserve notices in source and binary distributions |
-| Otherwise unmarked hOp files | Custom permission to use, modify and distribute, including derived works; `LICENSE` | Retain this exact notice; do not label these files MIT merely because the terms are permissive |
-| `kernel/Gadgets/` including `lib/`, demos and images | Academic-use-only redistribution in `LICENSE` and `kernel/Gadgets/README.txt` | Replace independently; exclude from public source, history and release artifacts |
-| GHC compiler and RTS | [GHC's three-clause BSD license](https://www.haskell.org/ghc/license.html); actual release includes additional separately licensed components | Pin the chosen release and audit its libraries/native dependencies individually; preserve notices |
-| `support/c/dlmalloc.c`, `libc.c`, `fakeerrno.c`, `Gen_wctype.hs` and generated tables | Public-domain declarations in the individual files and/or `support/c/LICENSE` | Verify each retained file, including incorporated code and table inputs; retain provenance |
-| `support/c/bsearch.c` | File header says **LGPL-2.1-or-later**; `support/c/LICENSE` inaccurately calls it "GPLv2.1" | Prefer an independent Haskell implementation or removal if unused. If retained, satisfy the applicable LGPL distribution/relinking requirements |
-| `support/m/` | Sun/fdlibm permission requiring notice retention; some files have additional provenance | Audit individual files and preserve applicable notices; replace only where it helps the C-reduction goal |
-| `kernel/cbits/multiboot.h` | **GPL-2.0-or-later** notice in the header | Prefer independently authored definitions from the published boot protocol, with source provenance; otherwise assess obligations for the actual use. Do not claim the entire kernel's license solely from the header's presence |
-| `mkbe2gbf` | "Released under GPL", without a version in the script | Replace the obsolete build script or exclude it; do not relabel the file MIT |
-| Bundled GRUB stage files / `stage2` | Binary bootloader artifacts inherited from the historical distribution; exact source/build provenance not yet established | Use a pinned, source-available bootloader build with its license and corresponding-source obligations documented; keep its license distinct from the kernel |
-| GMP / libgcc helpers | Historical recipes copy external archives; their exact versions/sources are not pinned here | Prefer GHC's native bignum backend to remove GMP from the guest. Audit any retained compiler-runtime helpers against the exact toolchain version and exceptions |
-| `kernel/Util/FixedFont.hs`, `floppy_dir/fonts.hf`, `kernel/H/h/haskell_icon.gif`, other artwork/data | Not all original font/image/data provenance is established by the current audit | Quarantine from release approval; replace with original or verified open assets, with sources and notices |
-| Historical kernel images and prebuilt user programs | Contents cannot be established from a top-level license alone; some differ from the adjacent source | Keep as external test references; ship newly built, auditable artifacts |
-| Papers and historical screenshots | Research material; downloading does not establish permission to redistribute all embedded content | Keep outside the release; link to the papers rather than assuming they inherit the code license |
+| GHC 9.14.1 compiler and selected RTS/library objects | GHC BSD-style license and additional component notices in the verified source and `ghc-internal/LICENSE` | Compiler runs on the host; selected RTS/library code is linked into the guest |
+| GHC native bignum implementation | Part of the source-built `ghc-internal` graph, retaining upstream notices | Haskell arbitrary-precision arithmetic; no GMP in the guest |
+| GHC `libraries/ghc-internal/cbits/md5.c` | Colin Plumb public-domain declaration | Small C helper for type fingerprints |
+| Debian `libgcc-12-dev` 12.2.0-14+deb12u1 helpers | GPL-3.0-or-later with GCC Runtime Library Exception 3.1, per the exact Debian package notice | `__divdi3`, `__udivdi3`, `__udivmoddi4` in the current guest |
+| Debian/GCC/binutils and hosted GHC dependencies | Their package-specific open-source notices | Build environment; hosted libraries do not automatically become guest dependencies |
+| QEMU | Its own GPL and component notices | Separately installed emulator; not linked into NeoHouse |
 
-GPL and LGPL are open-source licenses. Their presence is not itself a failure
-of the user's requirement. The reason to replace small inherited support pieces
-is to reduce native code and simplify the intended permissive kernel/toolkit
-distribution. Using an open-source compiler, emulator or separately distributed
-bootloader does not by itself assign that tool's license to our original code.
-Check the obligations of anything actually incorporated or linked into an image.
+The build preserves full GHC/`ghc-internal` notices, including notices applying
+to Report-derived library code. Four staged library modifications retain those
+upstream notices. The small MD5 helper introduces no external crypto library.
 
-## New terminal checkpoint inputs
+`build/runtime/dependencies.json` records the actual linked members, helper
+symbols, compiler versions, source hashes, API interfaces and kernel hash.
+`build/runtime/dependency-notices/` contains copied GHC, library, MD5, libgcc
+and project notices. These records concern the particular generated image;
+the project's MIT license does not replace third-party dependency licenses.
 
-The new guest links original MIT bootstrap/Haskell code, selected GHC 9.14.1
-RTS/library objects, and selected integer-arithmetic helpers from Debian's
-`libgcc-12-dev` **12.2.0-14+deb12u1**. The installed package notice identifies
-libgcc as GPL-3.0-or-later with the **GCC Runtime Library Exception 3.1**. Keep
-the exact notice and assess the exception for the eventual release build.
-The source and bindist hashes, pinned compiler environment, actual linked
-objects and copied notices are recorded under ignored `build/runtime/`.
+## Source publication versus binary distribution
 
-GMP, libffi, a host libc/libm, historical House support code, GRUB binaries,
-Gadgets and old assets are not linked into this checkpoint. The subsequent
-native-submission checkpoint source-builds the guest's Haskell library graph
-with `BIGNUM_NATIVE`, including working arbitrary-precision integers. It also
-links GHC's `libraries/ghc-internal/cbits/md5.c` for type fingerprints. That
-file's Colin Plumb public-domain declaration is copied with the dependency
-notices; it is a small C helper, not an external crypto library. Retain the
-full GHC/ghc-internal notices, including notices applying to Report-derived
-library code. The four staged library modifications retain upstream notices.
-The 22 retained prebuilt GHC Cmm/assembly objects and compiler-helper sources
-must be addressed in a fully reproducible source-based release toolchain.
+This publication provides project source and build recipes, not prebuilt OS or
+compiler binaries. The prototype still retains 22 matching GHC Cmm/assembly
+objects from the hash-verified compiler bindist. A fully source-reproducible
+compiler/runtime build remains a milestone.
 
-## Public repository and releases
+Before distributing binary images, retain their exact dependency manifest and
+all required notices, and provide corresponding source/relinking material
+where the applicable dependency terms require it. Review the exact libgcc
+exception and generated artifact, rather than inferring its terms from the
+project's MIT label.
 
-The initial local commit `5cf4e5987cecb4eb80656a593fb3f194996ca386` imports
-Gadgets. Deleting the directory in a later commit would leave it accessible in
-history. Do not publish this history as the unrestricted project.
-
-Preserve this local development/reference repository and the untouched parent
-`upstream/` copies. Once the release source set is audited, create a fresh Git
-repository from an explicit export allowlist, including the necessary notices,
-new-code license text, source/build provenance and replacement implementation.
-Verify all exported files and perform a build using only that export and its
-declared open-source inputs. Publish that new history. No history rewrite or
-publication has been performed by this planning step.
-
-Before the first release, produce a file/component manifest with SPDX license
-expressions where established, named custom licenses where necessary, and
-explicit unresolved entries until investigated. Include dependency versions,
-source hashes, license texts, binary notices and source/relinking materials
-where required. The release gate is zero unresolved shipped components, not a
-successful automated license-string scan.
-
-An MIT label on new code cannot cure Gadgets' restriction. Changing to GPL
-would not cure it either. The chosen route is replacement, not relicensing
-someone else's work without permission.
+Future historical House modules or assets must have established provenance
+and suitable open-source terms before being introduced into this repository.
+The deferred GUI must be independently implemented; Gadgets is not an input.

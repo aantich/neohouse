@@ -23,10 +23,10 @@ hardware/protocol specifications. We have already inspected some Gadgets
 integration code, so this work must not be described as a formally isolated
 clean-room process. Record the provenance of each reused module and asset.
 
-Keep the historical source in the parent workspace as research material. The
-current local Git import contains it; a later deletion commit is insufficient
-for the publication requirement. Seed a fresh public history from an audited
-export when the source set is ready. Do not automatically bundle the old PDFs,
+Keep historical source outside this repository as research material. The
+published history was rewritten to exclude the historical import, including
+Gadgets and bundled binaries/assets. The public source set contains only the
+modern implementation, tools and documentation. Do not introduce old PDFs,
 screenshots, floppy images or archived source into the new release.
 
 ## Architecture
